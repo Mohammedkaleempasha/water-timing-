@@ -1,0 +1,1980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WaterWatch – Smart Community Water Supply Notification System | Hyderabad</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💧</text></svg>">
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Google Firebase SDK (v10 compat mode for reliable client-side execution) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <!-- Custom Stylesheets (Root & Subdir) -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- ===================================================================
+       SYSTEM MAINTENANCE BANNER (Admin Toggleable)
+       =================================================================== -->
+  <div id="systemMaintenanceBanner" class="maintenance-banner hidden">
+    <i class="fas fa-exclamation-triangle"></i>
+    <span id="systemMaintenanceMsg">System undergoing scheduled municipal water telemetry maintenance.</span>
+  </div>
+
+  <!-- ===================================================================
+       TOP PROTOTYPE BANNER (Ideathon Disclaimer)
+       =================================================================== -->
+  <div class="prototype-banner">
+    <div class="banner-inner">
+      <span class="badge-ideathon" data-i18n="banner_ideathon"><i class="fas fa-lightbulb"></i> Student Ideathon Prototype</span>
+      <span data-i18n="banner_loc_desc">Default Location: <strong>Hyderabad, Telangana, India</strong> • Schedules & alerts shown are realistic sample demo data.</span>
+      <button class="btn-sim-trigger" id="btnOpenSimModal" title="Open test alert dispatcher for Ideathon evaluation">
+        <i class="fas fa-magic"></i> <span data-i18n="btn_simulate_alert">Simulate Alert</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       HEADER & NAVIGATION
+       =================================================================== -->
+  <header class="site-header">
+    <div class="container header-inner">
+      
+      <!-- Logo -->
+      <a href="#home" class="brand-logo" data-nav="home">
+        <div class="logo-water-icon">
+          <i class="fas fa-tint"></i>
+        </div>
+        <div class="logo-text-block">
+          <div class="logo-title">Water<span>Watch</span></div>
+          <div class="logo-tagline" data-i18n="brand_tagline">Stay Informed. Stay Prepared.</div>
+        </div>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav class="desktop-nav">
+        <a href="#home" class="nav-link active" data-nav="home"><i class="fas fa-home"></i> <span data-i18n="nav_home">Home</span></a>
+        <a href="#dashboard" class="nav-link" data-nav="dashboard"><i class="fas fa-chart-pie"></i> <span data-i18n="nav_dashboard">Dashboard</span></a>
+        <a href="#schedule" class="nav-link" data-nav="schedule"><i class="fas fa-calendar-alt"></i> <span data-i18n="nav_schedule">Supply Schedule</span></a>
+        <a href="#notifications" class="nav-link" data-nav="notifications"><i class="fas fa-bell"></i> <span data-i18n="nav_notifications">Notifications</span></a>
+        <a href="#community" class="nav-link" data-nav="community"><i class="fas fa-users"></i> <span data-i18n="nav_community">Community</span></a>
+        <a href="#records" class="nav-link" data-nav="records"><i class="fas fa-history"></i> <span data-i18n="nav_records">Records</span></a>
+        <a href="#portals" class="nav-link" data-nav="portals"><i class="fas fa-building-columns"></i> <span data-i18n="nav_portals">Official Portals</span></a>
+        <a href="#about" class="nav-link" data-nav="about"><i class="fas fa-info-circle"></i> <span data-i18n="nav_about">About Us</span></a>
+        <a href="#contact" class="nav-link" data-nav="contact"><i class="fas fa-envelope"></i> <span data-i18n="nav_contact">Contact</span></a>
+        <a href="#admin-panel" id="navAdminControlBtn" class="nav-link hidden" data-nav="admin-panel" style="color: #d97706; background: #fef3c7; border: 1px solid #fde68a;"><i class="fas fa-shield-alt"></i> <span data-i18n="nav_control_panel">Control Panel</span></a>
+      </nav>
+
+      <!-- Header Action Controls -->
+      <div class="header-actions">
+        
+        <!-- Multilingual Language Selector (English, Telugu, Hindi) -->
+        <div class="lang-selector-wrap" title="Change Language / భాషను మార్చండి / भाषा बदलें">
+          <i class="fas fa-globe"></i>
+          <select id="headerLanguageSelect" class="lang-select-input" aria-label="Select Language">
+            <option value="en">English</option>
+            <option value="te">తెలుగు</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+        </div>
+
+        <!-- Locality Selector Dropdown -->
+        <div class="locality-selector-wrap" title="Change Locality in Hyderabad">
+          <i class="fas fa-map-marker-alt"></i>
+          <select id="headerLocalitySelect" class="locality-select-input" aria-label="Select Locality in Hyderabad">
+            <!-- Populated dynamically by app.js -->
+          </select>
+        </div>
+
+        <!-- Notification Bell -->
+        <button class="btn-icon-bell" id="headerNotificationBell" title="View Notifications" aria-label="Notifications">
+          <i class="far fa-bell"></i>
+          <span class="notif-badge-pill" id="notifBadgeCount">2</span>
+        </button>
+
+        <!-- Admin Portal Icon Link -->
+        <a href="#admin-login" class="btn btn-xs btn-outline" data-nav="admin-login" title="Officer / Admin Central Command" style="border-color: #cbd5e1;">
+          <i class="fas fa-shield-alt text-amber-500"></i> <span data-i18n="nav_admin">Admin</span>
+        </a>
+
+        <!-- User Auth Chip / Sign In Button -->
+        <div id="navUserChip" class="user-chip">
+          <div class="user-chip-avatar"><i class="fas fa-user"></i></div>
+          <span id="navUserName">Aarav Sharma</span>
+          <button class="btn-user-logout" id="btnLogout" title="Log Out" aria-label="Logout"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+
+        <button id="navAuthPill" class="btn btn-sm btn-primary btn-open-auth hidden">
+          <i class="fas fa-sign-in-alt"></i> <span data-i18n="nav_sign_in">Sign In</span>
+        </button>
+
+        <!-- Mobile Menu Hamburger -->
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open Navigation Menu">
+          <i class="fas fa-bars"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Mobile Drawer Navigation -->
+  <div class="mobile-nav-drawer" id="mobileNavDrawer">
+    <div class="mobile-drawer-header">
+      <div class="logo-title">Water<span>Watch</span></div>
+      <button class="close-mobile-drawer" id="closeMobileMenuBtn">&times;</button>
+    </div>
+
+    <!-- Mobile Language Selector -->
+    <div class="mobile-drawer-lang">
+      <div class="mobile-drawer-lang-title"><i class="fas fa-globe"></i> <span data-i18n="select_language">Language / భాష / भाषा:</span></div>
+      <div class="mobile-lang-pills">
+        <button type="button" class="lang-pill-btn active" data-lang="en">English</button>
+        <button type="button" class="lang-pill-btn" data-lang="te">తెలుగు</button>
+        <button type="button" class="lang-pill-btn" data-lang="hi">हिन्दी</button>
+      </div>
+    </div>
+
+    <div class="mobile-nav-links">
+      <a href="#home" class="nav-link" data-nav="home"><i class="fas fa-home"></i> <span data-i18n="nav_home">Home</span></a>
+      <a href="#dashboard" class="nav-link" data-nav="dashboard"><i class="fas fa-chart-pie"></i> <span data-i18n="nav_dashboard">Dashboard</span></a>
+      <a href="#schedule" class="nav-link" data-nav="schedule"><i class="fas fa-calendar-alt"></i> <span data-i18n="nav_schedule">Supply Schedule</span></a>
+      <a href="#notifications" class="nav-link" data-nav="notifications"><i class="fas fa-bell"></i> <span data-i18n="nav_notifications">Notifications</span></a>
+      <a href="#community" class="nav-link" data-nav="community"><i class="fas fa-users"></i> <span data-i18n="nav_community">Community Confirmation</span></a>
+      <a href="#records" class="nav-link" data-nav="records"><i class="fas fa-history"></i> <span data-i18n="nav_records">Records & History</span></a>
+      <a href="#portals" class="nav-link" data-nav="portals"><i class="fas fa-building-columns"></i> <span data-i18n="nav_portals">Official Portals</span></a>
+      <a href="#about" class="nav-link" data-nav="about"><i class="fas fa-info-circle"></i> <span data-i18n="nav_about">About Us</span></a>
+      <a href="#contact" class="nav-link" data-nav="contact"><i class="fas fa-envelope"></i> <span data-i18n="nav_contact">Contact & Feedback</span></a>
+    </div>
+  </div>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="app-main-content">
+
+    <!-- ===================================================================
+         VIEW 1: HOMEPAGE (#home)
+         =================================================================== -->
+    <section id="view-home" class="app-view">
+      
+      <!-- Hero Section -->
+      <div class="hero-section">
+        <div class="hero-bg-blobs">
+          <div class="hero-blob blob-1"></div>
+          <div class="hero-blob blob-2"></div>
+        </div>
+
+        <div class="container hero-grid">
+          
+          <!-- Hero Text -->
+          <div class="hero-text-col">
+            <div class="hero-pill-badge" data-i18n="hero_badge">
+              <i class="fas fa-tint"></i> Smart Water Notification Network • Hyderabad
+            </div>
+            <h1 class="hero-title">
+              <span data-i18n="hero_title_prefix">Never Miss Water Supply In Your </span><span class="gradient-text" data-i18n="hero_title_highlight">Locality Again.</span>
+            </h1>
+            <p class="hero-subtitle" data-i18n="hero_subtitle">
+              WaterWatch helps Hyderabad residents track expected municipal water timings, receive advance mobile alerts on timing changes or delays, and crowdsource real-time arrival confirmations.
+            </p>
+
+            <div class="hero-cta-group">
+              <a href="#dashboard" class="btn btn-primary btn-lg" data-nav="dashboard">
+                <i class="fas fa-tachometer-alt"></i> <span data-i18n="btn_get_started">Get Started</span>
+              </a>
+              <a href="#schedule" class="btn btn-secondary btn-lg" data-nav="schedule">
+                <i class="fas fa-calendar-check"></i> <span data-i18n="btn_view_schedule">View Supply Schedule</span>
+              </a>
+            </div>
+
+            <!-- Hero Quick Locality Box -->
+            <div class="hero-locality-quick-box">
+              <div class="quick-box-label"><i class="fas fa-location-arrow text-primary"></i> <span data-i18n="select_area_label">Select Area:</span></div>
+              <select id="heroLocalitySelect" aria-label="Quick Select Hyderabad Locality">
+                <!-- Populated dynamically -->
+              </select>
+              <button class="btn btn-sm btn-primary" onclick="App.navigateTo('dashboard')">
+                <span data-i18n="btn_check_status">Check Status</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Hero Visual Card (Interactive Prototype Preview) -->
+          <div class="hero-visual-card">
+            <div class="hero-card-header">
+              <div class="live-indicator">
+                <span class="pulse-dot"></span> Live Timetable Monitor
+              </div>
+              <span class="badge badge-light"><i class="fas fa-map-marker-alt text-primary"></i> <span class="active-locality-text">Kukatpally</span></span>
+            </div>
+
+            <!-- Big Gauge Card -->
+            <div class="hero-water-gauge">
+              <div class="gauge-meta-tag">Next Scheduled Supply</div>
+              <div class="gauge-main-time next-supply-time">06:00 AM - 08:30 AM</div>
+              <div class="gauge-duration">Expected Duration: <span class="next-supply-duration">2h 30m</span> (Normal Pressure)</div>
+            </div>
+
+            <!-- Mini Live Feed -->
+            <div class="hero-mini-feed">
+              <div class="mini-feed-item">
+                <i class="fas fa-check-circle text-success"></i>
+                <div>
+                  <strong>88% Community Consensus</strong>
+                  <div class="text-xs text-muted">38 neighbours in <span class="active-locality-text">Kukatpally</span> confirmed previous cycle.</div>
+                </div>
+              </div>
+              <div class="mini-feed-item">
+                <i class="fas fa-bell text-primary"></i>
+                <div>
+                  <strong>Advance Alert Scheduled</strong>
+                  <div class="text-xs text-muted">Reminder will fire 30 minutes before supply begins.</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Live Stats Counter Bar -->
+      <div class="stats-bar-section">
+        <div class="container stats-grid">
+          <div class="stat-item">
+            <div class="stat-item-number">12+</div>
+            <div class="stat-item-label">Hyderabad Localities Covered</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-item-number">4,820+</div>
+            <div class="stat-item-label">Households Alerted</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-item-number">94%</div>
+            <div class="stat-item-label">Timing Notification Accuracy</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-item-number">850+</div>
+            <div class="stat-item-label">Community Confirmations Today</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3-Step Process Section -->
+      <section class="section-pad">
+        <div class="container">
+          <div class="section-head">
+            <span class="section-pill-tag">How It Works</span>
+            <h2 class="section-title">Stay Prepared in 3 Simple Steps</h2>
+            <p class="section-desc">Designed with Design Thinking principles to solve unpredictable water supply schedules for households across Hyderabad.</p>
+          </div>
+
+          <div class="process-grid">
+            
+            <div class="process-card">
+              <div class="process-step-num">01</div>
+              <div class="process-icon-box">
+                <i class="fas fa-map-marked-alt"></i>
+              </div>
+              <h3 class="process-title">Select Your Locality</h3>
+              <p class="process-text">Choose your area in Hyderabad (Kukatpally, Miyapur, Ameerpet, Gachibowli, Madhapur, etc.) or enter your custom residential colony.</p>
+            </div>
+
+            <div class="process-card">
+              <div class="process-step-num">02</div>
+              <div class="process-icon-box">
+                <i class="fas fa-clock"></i>
+              </div>
+              <h3 class="process-title">Check Supply Timings</h3>
+              <p class="process-text">View verified expected water supply hours, duration, and pressure estimations with a real-time countdown to your next supply slot.</p>
+            </div>
+
+            <div class="process-card">
+              <div class="process-step-num">03</div>
+              <div class="process-icon-box">
+                <i class="fas fa-mobile-alt"></i>
+              </div>
+              <h3 class="process-title">Receive Alerts & Confirm</h3>
+              <p class="process-text">Get instant notices about timing adjustments or pipeline delays. Confirm with one click when water reaches your tap to help your neighbours.</p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- Features Section -->
+      <section class="section-pad" style="background-color: var(--white); border-top: 1px solid var(--slate-200); border-bottom: 1px solid var(--slate-200);">
+        <div class="container">
+          <div class="section-head">
+            <span class="section-pill-tag">System Features</span>
+            <h2 class="section-title">Built For Student Ideathon Excellence</h2>
+            <p class="section-desc">A realistic, citizen-centric platform tackling urban water unpredictability with transparent schedules and crowd verification.</p>
+          </div>
+
+          <div class="features-grid">
+            <div class="feature-card">
+              <div class="feature-icon"><i class="fas fa-bell"></i></div>
+              <h4 class="feature-title">Advance Alerts</h4>
+              <p class="feature-desc">Receive notifications prior to supply release so you can prepare storage tanks, motors, and domestic activities.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-icon"><i class="fas fa-sync-alt"></i></div>
+              <h4 class="feature-title">Schedule Updates</h4>
+              <p class="feature-desc">Real-time alerts whenever supply times are shifted, pipelines undergo maintenance, or delays occur.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-icon"><i class="fas fa-thumbs-up"></i></div>
+              <h4 class="feature-title">Community Confirmation</h4>
+              <p class="feature-desc">Crowdsourced validation: residents report whether water has arrived, verifying municipal supply pressure.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+              <h4 class="feature-title">Supply Records</h4>
+              <p class="feature-desc">Transparent supply logs, duration trends, and on-time reliability metrics visualized with interactive charts.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+          <!-- ===================================================================
+           OFFICIAL MUNICIPAL RESOURCES SECTION (HMWSSB & GHMC)
+           Pixel-accurate cards for HMWSSB & GHMC Portals and Handles
+           =================================================================== -->
+      <section class="section-pad" id="officialPortalsHomeSection" style="background-color: var(--white); border-top: 1px solid var(--slate-200); border-bottom: 1px solid var(--slate-200);">
+        <div class="container portals-container">
+          <div class="section-head">
+            <span class="section-pill-tag" data-i18n="portals_tag">Official Municipal Resources</span>
+            <h2 class="section-title" data-i18n="portals_title">Official Hyderabad Water & Civic Portals</h2>
+            <p class="section-desc" data-i18n="portals_subtitle">Direct access to official Government of Telangana, HMWSSB, and GHMC portals and verified social channels for public announcements, customer services, and civic updates.</p>
+          </div>
+
+          <div class="portals-list-vertical">
+            
+            <!-- Card 1: HMWSSB Website -->
+            <a href="https://hyderabadwater.gov.in/" target="_blank" rel="noopener noreferrer" class="official-portal-card" title="Open Official HMWSSB Portal">
+              <div class="portal-card-header">
+                <span class="portal-tag-badge portal-tag-hmwssb" data-i18n="card_hmwssb_badge">HMWSSB</span>
+                <span class="portal-card-external-icon"><i class="fas fa-arrow-up-right-from-square"></i></span>
+              </div>
+              <div class="portal-card-title" data-i18n="card_hmwssb_title">HMWSSB Website</div>
+              <div class="portal-card-desc" data-i18n="card_hmwssb_desc">Hyderabad Metropolitan Water Supply & Sewerage Board official portal</div>
+              <div class="portal-card-action-row">
+                <span class="portal-action-text"><i class="fas fa-globe"></i> <span data-i18n="card_hmwssb_btn">Open Official Website</span></span>
+                <span class="portal-new-tab-hint" data-i18n="card_new_tab">New Tab ↗</span>
+              </div>
+            </a>
+
+            <!-- Card 2: HMWSSB X -->
+            <a href="https://x.com/HMWSSBOnline" target="_blank" rel="noopener noreferrer" class="official-portal-card" title="Open Official HMWSSB X Handle">
+              <div class="portal-card-header">
+                <span class="portal-tag-badge portal-tag-hmwssb" data-i18n="card_hmwssb_x_badge">HMWSSB</span>
+                <span class="portal-card-external-icon"><i class="fas fa-arrow-up-right-from-square"></i></span>
+              </div>
+              <div class="portal-card-title" data-i18n="card_hmwssb_x_title">HMWSSB X</div>
+              <div class="portal-card-desc" data-i18n="card_hmwssb_x_desc">Official HMWSSB public service advisories & interruption alerts</div>
+              <div class="portal-card-action-row">
+                <span class="portal-action-text"><i class="fab fa-x-twitter"></i> <span data-i18n="card_hmwssb_x_btn">Open Official X Account</span></span>
+                <span class="portal-new-tab-hint" data-i18n="card_new_tab">New Tab ↗</span>
+              </div>
+            </a>
+
+            <!-- Card 3: GHMC Website -->
+            <a href="https://www.ghmc.gov.in/" target="_blank" rel="noopener noreferrer" class="official-portal-card" title="Open Official GHMC Portal">
+              <div class="portal-card-header">
+                <span class="portal-tag-badge portal-tag-ghmc" data-i18n="card_ghmc_badge">GHMC</span>
+                <span class="portal-card-external-icon"><i class="fas fa-arrow-up-right-from-square"></i></span>
+              </div>
+              <div class="portal-card-title" data-i18n="card_ghmc_title">GHMC Website</div>
+              <div class="portal-card-desc" data-i18n="card_ghmc_desc">Greater Hyderabad Municipal Corporation official portal</div>
+              <div class="portal-card-action-row">
+                <span class="portal-action-text"><i class="fas fa-globe"></i> <span data-i18n="card_ghmc_btn">Open Official Website</span></span>
+                <span class="portal-new-tab-hint" data-i18n="card_new_tab">New Tab ↗</span>
+              </div>
+            </a>
+
+            <!-- Card 4: GHMC X -->
+            <a href="https://x.com/GHMCOnline" target="_blank" rel="noopener noreferrer" class="official-portal-card" title="Open Official GHMC X Handle">
+              <div class="portal-card-header">
+                <span class="portal-tag-badge portal-tag-ghmc" data-i18n="card_ghmc_x_badge">GHMC</span>
+                <span class="portal-card-external-icon"><i class="fas fa-arrow-up-right-from-square"></i></span>
+              </div>
+              <div class="portal-card-title" data-i18n="card_ghmc_x_title">GHMC X</div>
+              <div class="portal-card-desc" data-i18n="card_ghmc_x_desc">Official GHMC civic & municipal coordination updates</div>
+              <div class="portal-card-action-row">
+                <span class="portal-action-text"><i class="fab fa-x-twitter"></i> <span data-i18n="card_ghmc_x_btn">Open Official X Account</span></span>
+                <span class="portal-new-tab-hint" data-i18n="card_new_tab">New Tab ↗</span>
+              </div>
+            </a>
+
+          </div>
+
+          <!-- Official Civic Helplines -->
+          <div class="helpline-banner-box">
+            <div class="helpline-item">
+              <i class="fas fa-phone-volume"></i>
+              <span data-i18n="helpline_hmwssb">HMWSSB Customer Care Helpline: 155313</span>
+            </div>
+            <div class="helpline-item">
+              <i class="fas fa-headset"></i>
+              <span data-i18n="helpline_ghmc">GHMC Citizen Helpline: 040-21111111</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </section>
+
+    <!-- ===================================================================
+         VIEW: OFFICIAL MUNICIPAL PORTALS (#portals)
+         =================================================================== -->
+    <section id="view-portals" class="app-view hidden">
+      <div class="dashboard-header-bar">
+        <div class="container dashboard-head-grid">
+          <div>
+            <h1 class="text-2xl" data-i18n="portals_title">Official Hyderabad Water & Civic Portals</h1>
+            <p class="text-muted text-sm" data-i18n="portals_subtitle">Direct access to official Government of Telangana, HMWSSB, and GHMC portals and verified social channels for public announcements, customer services, and civic updates.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="badge badge-light">
+              <i class="fas fa-shield-alt text-primary"></i> <span>Govt. of Telangana</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="container portals-container" style="padding-top: 2rem; padding-bottom: 3.5rem;">
+        <div class="portals-list-vertical">
+          
+          <!-- Card 1: HMWSSB Website -->
+          <a href="https://hyderabadwater.gov.in/" target="_blank" rel="noopener noreferrer" class="official-portal-card" title="Open Official HMWSSB Portal">
+            <div class="portal-card-header">
+              <span class="portal-tag-badge portal-tag-hmwssb" data-i18n="card_hmwssb_badge">HMWSSB</span>
+              <span class="portal-card-external-icon"><i class="fas fa-arrow-up-right-from-square"></i></span>
+            </div>
+            <div class="portal-card-title" data-i18n="card_hmwssb_title">HMWSSB Website</div>
+            <div class="portal-card-desc" data-i18n="card_hmwssb_desc">Hyderabad Metropolitan Water Supply & Sewerage Board official portal</div>
+            <div class="portal-card-action-row">
+              <span class="portal-action-text"><i class="fas fa-globe"></i> <span data-i18n="card_hmwssb_btn">Open Official Website</span></span>
+              <span class="portal-new-tab-hint" data-i18n="card_new_tab">New Tab ↗</span>
+            </div>
+          </a>
+
+          <!-- Card 2: HMWSSB X -->
+          <a href="https://x.com/HMWSSBOnline" target="_blank" rel="noopener noreferrer" class="official-portal-card" title="Open Official HMWSSB X Handle">
+            <div class="portal-card-header">
+              <span class="portal-tag-badge portal-tag-hmwssb" data-i18n="card_hmwssb_x_badge">HMWSSB</span>
+              <span class="portal-card-external-icon"><i class="fas fa-arrow-up-right-from-square"></i></span>
+            </div>
+            <div class="portal-card-title" data-i18n="card_hmwssb_x_title">HMWSSB X</div>
+            <div class="portal-card-desc" data-i18n="card_hmwssb_x_desc">Official HMWSSB public service advisories & interruption alerts</div>
+            <div class="portal-card-action-row">
+              <span class="portal-action-text"><i class="fab fa-x-twitter"></i> <span data-i18n="card_hmwssb_x_btn">Open Official X Account</span></span>
+              <span class="portal-new-tab-hint" data-i18n="card_new_tab">New Tab ↗</span>
+            </div>
+          </a>
+
+          <!-- Card 3: GHMC Website -->
+          <a href="https://www.ghmc.gov.in/" target="_blank" rel="noopener noreferrer" class="official-portal-card" title="Open Official GHMC Portal">
+            <div class="portal-card-header">
+              <span class="portal-tag-badge portal-tag-ghmc" data-i18n="card_ghmc_badge">GHMC</span>
+              <span class="portal-card-external-icon"><i class="fas fa-arrow-up-right-from-square"></i></span>
+            </div>
+            <div class="portal-card-title" data-i18n="card_ghmc_title">GHMC Website</div>
+            <div class="portal-card-desc" data-i18n="card_ghmc_desc">Greater Hyderabad Municipal Corporation official portal</div>
+            <div class="portal-card-action-row">
+              <span class="portal-action-text"><i class="fas fa-globe"></i> <span data-i18n="card_ghmc_btn">Open Official Website</span></span>
+              <span class="portal-new-tab-hint" data-i18n="card_new_tab">New Tab ↗</span>
+            </div>
+          </a>
+
+          <!-- Card 4: GHMC X -->
+          <a href="https://x.com/GHMCOnline" target="_blank" rel="noopener noreferrer" class="official-portal-card" title="Open Official GHMC X Handle">
+            <div class="portal-card-header">
+              <span class="portal-tag-badge portal-tag-ghmc" data-i18n="card_ghmc_x_badge">GHMC</span>
+              <span class="portal-card-external-icon"><i class="fas fa-arrow-up-right-from-square"></i></span>
+            </div>
+            <div class="portal-card-title" data-i18n="card_ghmc_x_title">GHMC X</div>
+            <div class="portal-card-desc" data-i18n="card_ghmc_x_desc">Official GHMC civic & municipal coordination updates</div>
+            <div class="portal-card-action-row">
+              <span class="portal-action-text"><i class="fab fa-x-twitter"></i> <span data-i18n="card_ghmc_x_btn">Open Official X Account</span></span>
+              <span class="portal-new-tab-hint" data-i18n="card_new_tab">New Tab ↗</span>
+            </div>
+          </a>
+
+        </div>
+
+        <!-- Official Civic Helplines -->
+        <div class="helpline-banner-box">
+          <div class="helpline-item">
+            <i class="fas fa-phone-volume"></i>
+            <span data-i18n="helpline_hmwssb">HMWSSB Customer Care Helpline: 155313</span>
+          </div>
+          <div class="helpline-item">
+            <i class="fas fa-headset"></i>
+            <span data-i18n="helpline_ghmc">GHMC Citizen Helpline: 040-21111111</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         VIEW 2: USER DASHBOARD (#dashboard)
+         =================================================================== -->
+    <section id="view-dashboard" class="app-view hidden">
+      
+      <!-- Dashboard Top Header Bar -->
+      <div class="dashboard-header-bar">
+        <div class="container dashboard-head-grid">
+          <div>
+            <h1 class="text-2xl" id="dashboardHeading" data-i18n="dash_heading">Locality Dashboard</h1>
+            <p class="text-muted text-sm" id="dashboardUserGreeting">Welcome! Here is today's water status for your locality.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="badge badge-light">
+              <i class="fas fa-map-pin text-primary"></i> <span id="dashboardZoneInfo">Hyderabad, Telangana</span>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="App.openModal('customLocalityModal')">
+              <i class="fas fa-plus"></i> <span data-i18n="dash_btn_new_locality">New Locality</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="dashboard-main-grid">
+          
+          <!-- Left Column: Supply Status & Timer -->
+          <div class="dash-left-col">
+            
+            <!-- Hero Next Supply Widget -->
+            <div class="next-supply-hero-card">
+              <div class="next-supply-meta-line">
+                <span class="supply-date-badge"><i class="far fa-calendar-alt"></i> <span class="next-supply-date">Tomorrow</span></span>
+                <span class="status-pill status-scheduled" id="dashboardStatusBadge">SCHEDULED</span>
+              </div>
+
+              <div class="next-supply-big-time next-supply-time">06:00 AM - 08:30 AM</div>
+              
+              <div class="next-supply-specs">
+                <div class="spec-item"><i class="fas fa-hourglass-half"></i> Duration: <strong class="next-supply-duration">2h 30m</strong></div>
+                <div class="spec-item"><i class="fas fa-gauge-high"></i> Expected Pressure: <strong class="next-supply-pressure">Normal</strong></div>
+                <div class="spec-item"><i class="fas fa-info-circle"></i> <span id="dashboardStatusNote">Standard alternate day cycle</span></div>
+              </div>
+
+              <!-- Live Countdown -->
+              <div class="countdown-container">
+                <div class="countdown-label"><i class="far fa-clock"></i> <span data-i18n="dash_countdown_label">Countdown to Expected Supply (Simulated)</span></div>
+                <div class="countdown-timer-grid">
+                  <div class="cd-box"><div class="cd-val" id="cdHours">09</div><div class="cd-unit" data-i18n="dash_cd_hours">Hours</div></div>
+                  <div class="cd-colon">:</div>
+                  <div class="cd-box"><div class="cd-val" id="cdMinutes">24</div><div class="cd-unit" data-i18n="dash_cd_minutes">Mins</div></div>
+                  <div class="cd-colon">:</div>
+                  <div class="cd-box"><div class="cd-val" id="cdSeconds">18</div><div class="cd-unit" data-i18n="dash_cd_seconds">Secs</div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Confirmation Box -->
+            <div id="dashboardQuickConfirmBox" class="mb-4">
+              <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Recent Notifications for locality -->
+            <div class="dash-card">
+              <div class="dash-card-title">
+                <span><i class="fas fa-bell text-primary"></i> <span data-i18n="dash_recent_alerts_title">Locality Alerts & Announcements</span></span>
+                <a href="#notifications" class="text-xs text-primary" data-nav="notifications"><span data-i18n="dash_view_all_link">View All &rarr;</span></a>
+              </div>
+              <div id="dashboardRecentAlertsList">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right Column: Community Consensus & Quick Actions -->
+          <div class="dash-right-col">
+            
+            <!-- Community Consensus Card -->
+            <div class="dash-card">
+              <div class="dash-card-title">
+                <span><i class="fas fa-users text-primary"></i> <span data-i18n="dash_consensus_title">Community Consensus</span></span>
+                <span class="badge badge-success" id="dashboardConsensusPct">88%</span>
+              </div>
+              <p class="text-xs text-muted">Confirmed water received for current supply slot in <strong class="active-locality-text">Kukatpally</strong>.</p>
+              
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="dashboardConsensusBar" style="width: 88%;"></div>
+              </div>
+              <div class="text-xs text-muted mb-3" id="dashboardConsensusCount">38 of 42 neighbours confirmed</div>
+              
+              <a href="#community" class="btn btn-sm btn-outline w-full" data-nav="community">
+                <i class="fas fa-clipboard-check"></i> <span data-i18n="dash_btn_open_community">Open Community Reports</span>
+              </a>
+            </div>
+
+            <!-- Official Municipal Portals Card -->
+            <div class="dash-card">
+              <div class="dash-card-title">
+                <span><i class="fas fa-building-columns text-primary"></i> <span data-i18n="portals_tag">Official Municipal Portals</span></span>
+                <a href="#portals" class="text-xs text-primary" data-nav="portals"><span data-i18n="portals_view_all_link">View All →</span></a>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 0.65rem; margin-top: 0.75rem;">
+                <a href="https://hyderabadwater.gov.in/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border-radius: var(--radius-md); background: #f0f9ff; border: 1px solid #e0f2fe; text-decoration: none; font-size: 0.875rem; font-weight: 700; color: #0369a1;">
+                  <span style="display: flex; align-items: center; gap: 0.5rem;"><span class="portal-tag-badge portal-tag-hmwssb" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">HMWSSB</span> Website</span>
+                  <i class="fas fa-arrow-up-right-from-square" style="font-size: 0.75rem; color: #64748b;"></i>
+                </a>
+                <a href="https://x.com/HMWSSBOnline" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border-radius: var(--radius-md); background: #f0f9ff; border: 1px solid #e0f2fe; text-decoration: none; font-size: 0.875rem; font-weight: 700; color: #0369a1;">
+                  <span style="display: flex; align-items: center; gap: 0.5rem;"><span class="portal-tag-badge portal-tag-hmwssb" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">HMWSSB</span> Official X</span>
+                  <i class="fas fa-arrow-up-right-from-square" style="font-size: 0.75rem; color: #64748b;"></i>
+                </a>
+                <a href="https://www.ghmc.gov.in/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border-radius: var(--radius-md); background: #faf5ff; border: 1px solid #ede9fe; text-decoration: none; font-size: 0.875rem; font-weight: 700; color: #7c3aed;">
+                  <span style="display: flex; align-items: center; gap: 0.5rem;"><span class="portal-tag-badge portal-tag-ghmc" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">GHMC</span> Website</span>
+                  <i class="fas fa-arrow-up-right-from-square" style="font-size: 0.75rem; color: #64748b;"></i>
+                </a>
+                <a href="https://x.com/GHMCOnline" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border-radius: var(--radius-md); background: #faf5ff; border: 1px solid #ede9fe; text-decoration: none; font-size: 0.875rem; font-weight: 700; color: #7c3aed;">
+                  <span style="display: flex; align-items: center; gap: 0.5rem;"><span class="portal-tag-badge portal-tag-ghmc" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">GHMC</span> Official X</span>
+                  <i class="fas fa-arrow-up-right-from-square" style="font-size: 0.75rem; color: #64748b;"></i>
+                </a>
+              </div>
+            </div>
+
+            <!-- Locality Quick Details -->
+            <div class="dash-card">
+              <div class="dash-card-title">
+                <span><i class="fas fa-info-circle text-primary"></i> <span data-i18n="dash_metadata_title">Supply Metadata</span></span>
+              </div>
+              <div class="text-sm">
+                <div class="flex justify-between py-2 border-b border-slate-100">
+                  <span class="text-muted">City / State:</span>
+                  <strong>Hyderabad, Telangana</strong>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-100">
+                  <span class="text-muted">Selected Locality:</span>
+                  <strong class="active-locality-text">Kukatpally</strong>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-100">
+                  <span class="text-muted">Data Source:</span>
+                  <span class="badge badge-warning">Ideathon Sample Data</span>
+                </div>
+                <div class="flex justify-between py-2">
+                  <span class="text-muted">Last Verified:</span>
+                  <span>Today 04:30 PM</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Links Card -->
+            <div class="dash-card">
+              <div class="dash-card-title">
+                <span><i class="fas fa-bolt text-primary"></i> Quick Actions</span>
+              </div>
+              <div class="flex flex-col gap-2">
+                <a href="#schedule" class="btn btn-sm btn-secondary" data-nav="schedule"><i class="fas fa-calendar-alt"></i> View Weekly Timetable</a>
+                <a href="#records" class="btn btn-sm btn-secondary" data-nav="records"><i class="fas fa-chart-bar"></i> Check Past Records & Charts</a>
+                <button class="btn btn-sm btn-outline" id="btnDashSimAlert" onclick="App.openModal('simulateAlertModal')"><i class="fas fa-paper-plane"></i> Test Simulated Alert</button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         VIEW 3: SUPPLY SCHEDULE (#schedule)
+         =================================================================== -->
+    <section id="view-schedule" class="app-view hidden">
+      <div class="container section-pad">
+        
+        <div class="section-head text-left mb-4">
+          <span class="section-pill-tag">Hyderabad Water Timetable</span>
+          <h2 class="section-title" id="scheduleLocalityTitle">Water Supply Timetable – Kukatpally</h2>
+          <p class="section-desc">Expected water supply slots, valve release schedules, and maintenance adjustments.</p>
+        </div>
+
+        <!-- Sample Data Disclaimer Box -->
+        <div class="alert-preview-item alert-type-advance mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div class="alert-preview-icon"><i class="fas fa-info-circle text-primary"></i></div>
+          <div>
+            <strong>Notice on Prototype Data:</strong>
+            <p class="text-xs text-slate-600">This schedule displays realistic simulated sample data for Ideathon demonstration. It is not directly connected to official HMWSSB live scada pipelines unless an authorized API source is linked.</p>
+          </div>
+        </div>
+
+        <!-- Filter Toolbar -->
+        <div class="filter-toolbar">
+          <div class="filter-group">
+            <span class="text-xs font-bold text-muted uppercase">Date Filter:</span>
+            <button class="sch-filter-btn btn-filter active" data-filter-date="all" data-i18n="sch_filter_all">All Dates</button>
+            <button class="sch-filter-btn btn-filter" data-filter-date="today" data-i18n="sch_filter_today">Today</button>
+            <button class="sch-filter-btn btn-filter" data-filter-date="tomorrow" data-i18n="sch_filter_tomorrow">Tomorrow</button>
+            <button class="sch-filter-btn btn-filter" data-filter-date="upcoming" data-i18n="sch_filter_upcoming">Upcoming</button>
+          </div>
+
+          <div class="filter-group">
+            <span class="text-xs font-bold text-muted uppercase">Status:</span>
+            <select id="scheduleStatusFilter" class="filter-select" aria-label="Filter by Status">
+              <option value="all">All Statuses</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="delayed">Delayed</option>
+              <option value="updated">Updated</option>
+              <option value="completed">Completed</option>
+            </select>
+
+            <span class="text-xs font-bold text-muted uppercase ml-2">Locality:</span>
+            <select id="scheduleLocalitySelect" class="filter-select" aria-label="Change Locality">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-responsive">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>Expected Date</th>
+                <th>Supply Window</th>
+                <th data-i18n="sch_th_status">Status</th>
+                <th>Last Updated</th>
+                <th>Schedule Notes / Announcements</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleTableBody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="schedule-mobile-cards" id="scheduleCardsContainer">
+          <!-- Rendered dynamically -->
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         VIEW 4: NOTIFICATIONS & ALERTS (#notifications)
+         =================================================================== -->
+    <section id="view-notifications" class="app-view hidden">
+      <div class="container section-pad">
+        
+        <div class="section-head text-left mb-4">
+          <span class="section-pill-tag">Alerts & Dispatch</span>
+          <h2 class="section-title" data-i18n="notif_title">Notification Center</h2>
+          <p class="section-desc">Advance water supply warnings, timing change updates, delay announcements, and supply arrivals for <span class="active-locality-text">Kukatpally</span>.</p>
+        </div>
+
+        <!-- Notification Toolbar -->
+        <div class="notif-header-toolbar">
+          <div class="notif-tabs-bar">
+            <button class="notif-tab active" data-notif-category="all" data-i18n="notif_cat_all">All Alerts</button>
+            <button class="notif-tab" data-notif-category="advance" data-i18n="notif_cat_advance">Advance Alerts</button>
+            <button class="notif-tab" data-notif-category="delay" data-i18n="notif_cat_update">Delays</button>
+            <button class="notif-tab" data-notif-category="update" data-i18n="notif_cat_update">Timing Changes</button>
+            <button class="notif-tab" data-notif-category="arrival" data-i18n="notif_cat_arrival">Arrivals</button>
+          </div>
+
+          <div class="flex gap-2">
+            <button class="btn btn-sm btn-outline" id="markAllReadBtn"><i class="fas fa-check-double"></i> <span data-i18n="notif_btn_mark_read">Mark All As Read</span></button>
+            <button class="btn btn-sm btn-primary" onclick="App.openModal('simulateAlertModal')"><i class="fas fa-magic"></i> Simulate New Alert</button>
+          </div>
+        </div>
+
+        <!-- Notifications Stack -->
+        <div class="notifications-stack" id="notificationsListContainer">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Simulation Note -->
+        <div class="mt-4 p-3 bg-slate-100 rounded-lg text-xs text-slate-500 text-center">
+          <i class="fas fa-shield-alt"></i> Web Push Notifications are simulated in-browser for this prototype. Connect Firebase Cloud Messaging (FCM) credentials in <code>js/firebase-mock.js</code> for native background push dispatch.
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         VIEW 5: COMMUNITY CONFIRMATION (#community)
+         =================================================================== -->
+    <section id="view-community" class="app-view hidden">
+      <div class="container section-pad">
+        
+        <div class="section-head text-left mb-4">
+          <span class="section-pill-tag">Crowdsourced Intelligence</span>
+          <h2 class="section-title" data-i18n="comm_title">Community Water Confirmation</h2>
+          <p class="section-desc">Hyderabad residents confirm whether water has arrived at their taps, verifying supply reality on the ground.</p>
+        </div>
+
+        <!-- Disclaimer Banner -->
+        <div class="confirm-done-card mb-4" style="background: #fffbeb; border-color: #fde68a;">
+          <div class="confirm-done-icon" style="color: #d97706;"><i class="fas fa-users-cog"></i></div>
+          <div class="confirm-done-text">
+            <strong style="color: #92400e;">Citizen-Reported Data</strong>
+            <p style="color: #b45309;">These reports are submitted by community residents in <span class="active-locality-text">Kukatpally</span>. Unverified citizen inputs are kept distinct from municipal water schedules.</p>
+          </div>
+        </div>
+
+        <div class="community-grid">
+          
+          <!-- Left: Confirmation Form -->
+          <div class="community-submit-card">
+            <h3><i class="fas fa-tint text-primary"></i> Confirm Today's Water Supply</h3>
+            <p class="text-sm text-muted mt-1">Has municipal water arrived at your residence in <strong class="active-locality-text">Kukatpally</strong>?</p>
+
+            <div id="communityAlreadySubmittedNotice" class="hidden my-3 p-3 bg-emerald-50 border border-emerald-200 rounded-md text-xs text-emerald-800">
+              <i class="fas fa-check-circle text-emerald-600"></i> You have already submitted a confirmation for this supply cycle. Duplicate reports are prevented to maintain consensus accuracy.
+            </div>
+
+            <!-- Yes / No Big Choice Buttons -->
+            <div class="confirm-toggle-buttons">
+              <div class="btn-confirm-choice choice-yes active" id="confirmYesBtn">
+                <i class="fas fa-faucet-drip"></i>
+                <strong data-i18n="comm_opt_yes">Yes, Arrived</strong>
+                <span class="text-xs text-muted">Water is flowing</span>
+              </div>
+              <div class="btn-confirm-choice choice-no" id="confirmNoBtn">
+                <i class="fas fa-ban"></i>
+                <strong data-i18n="comm_opt_no">No, Not Yet</strong>
+                <span class="text-xs text-muted">Taps are dry</span>
+              </div>
+            </div>
+
+            <!-- Pressure Level Selector -->
+            <div id="pressureSelectorGroup">
+              <label class="form-label">Reported Water Pressure Quality:</label>
+              <div class="pressure-pills-group">
+                <div class="pressure-pill" data-pressure="Low" data-i18n="pressure_low_txt">Low (Trickle)</div>
+                <div class="pressure-pill active" data-pressure="Normal" data-i18n="pressure_normal_txt">Normal (Good)</div>
+                <div class="pressure-pill" data-pressure="High" data-i18n="pressure_high_txt">High Pressure</div>
+              </div>
+            </div>
+
+            <!-- Optional Comments -->
+            <div class="form-group">
+              <label class="form-label" for="communityReportNotes">Locality Notes (Optional):</label>
+              <input type="text" id="communityReportNotes" class="form-input" placeholder="e.g. Sump filled, Phase 4 taps received clear flow..." />
+            </div>
+
+            <button class="btn btn-primary w-full" id="submitCommunityReportBtn">
+              <i class="fas fa-paper-plane"></i> <span data-i18n="comm_btn_submit">Submit Water Confirmation</span>
+            </button>
+          </div>
+
+          <!-- Right: Consensus Gauge & Feed -->
+          <div class="community-consensus-col">
+            
+            <!-- Gauge Card -->
+            <div class="community-stats-card">
+              <div class="gauge-flex-wrap">
+                
+                <!-- Circular SVG Progress Ring -->
+                <div class="gauge-svg-container">
+                  <svg class="gauge-svg" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" stroke="#e2e8f0" stroke-width="8" fill="transparent" />
+                    <circle id="communityGaugeCircle" cx="50" cy="50" r="40" stroke="#10b981" stroke-width="8" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="30" stroke-linecap="round" />
+                  </svg>
+                  <div class="gauge-center-text">
+                    <div class="pct-number" id="communityGaugePct">88%</div>
+                    <div class="pct-label">Confirmed</div>
+                  </div>
+                </div>
+
+                <!-- Stats Numbers -->
+                <div class="gauge-stat-items">
+                  <div class="g-stat-box">
+                    <div class="g-stat-num text-success" id="communityYesCount">38</div>
+                    <div class="g-stat-lbl">Confirmed Arrived</div>
+                  </div>
+                  <div class="g-stat-box">
+                    <div class="g-stat-num text-danger" id="communityNoCount">4</div>
+                    <div class="g-stat-lbl">Reported Dry</div>
+                  </div>
+                  <div class="g-stat-box">
+                    <div class="g-stat-num" id="communityTotalReports">42</div>
+                    <div class="g-stat-lbl">Total Reports Today</div>
+                  </div>
+                  <div class="g-stat-box">
+                    <div class="g-stat-num text-sm font-bold text-primary" id="communityLastActive">12 mins ago</div>
+                    <div class="g-stat-lbl">Latest Submission</div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Feed of Recent Reports -->
+            <div class="dash-card">
+              <div class="dash-card-title">
+                <span><i class="fas fa-stream text-primary"></i> Recent Community Confirmations</span>
+                <span class="text-xs text-muted">Locality: <span class="active-locality-text">Kukatpally</span></span>
+              </div>
+              <div class="community-feed" id="communityReportsFeed">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         VIEW 6: SUPPLY RECORDS & HISTORY (#records)
+         =================================================================== -->
+    <section id="view-records" class="app-view hidden">
+      <div class="container section-pad">
+        
+        <div class="section-head text-left mb-4">
+          <span class="section-pill-tag">Analytics & Punctuality</span>
+          <h2 class="section-title" data-i18n="records_title">Supply Records & Historical Trends</h2>
+          <p class="section-desc">Audit trail of past water releases, comparing scheduled vs actual delivery duration in <span class="active-locality-text">Kukatpally</span>.</p>
+        </div>
+
+        <!-- Locality Switcher for Records -->
+        <div class="filter-toolbar mb-4">
+          <div class="filter-group">
+            <span class="text-xs font-bold text-muted uppercase">Select Locality:</span>
+            <select id="recordsLocalitySelect" class="filter-select" aria-label="Select Locality for History">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div class="text-xs text-muted">
+            <i class="fas fa-check-circle text-success"></i> Displaying past 6 supply cycles
+          </div>
+        </div>
+
+        <!-- KPI Summary Cards -->
+        <div class="records-kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-title"><i class="far fa-clock text-primary"></i> Average Supply Duration</div>
+            <div class="kpi-value text-primary" id="recordAvgDuration">2.4 hrs</div>
+            <div class="text-xs text-muted mt-1">Benchmark: 2.5 hours per alternate day</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title"><i class="fas fa-shield-alt text-success"></i> On-Time Reliability</div>
+            <div class="kpi-value text-success" id="recordReliabilityRate">83%</div>
+            <div class="text-xs text-muted mt-1">Within ±15 min scheduled valve opening</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title"><i class="fas fa-layer-group text-slate-700"></i> Monitored Supply Cycles</div>
+            <div class="kpi-value" id="recordTotalCycles">6 cycles</div>
+            <div class="text-xs text-muted mt-1">Consensus-verified historical dataset</div>
+          </div>
+        </div>
+
+        <!-- Visual Charts Grid (Chart.js) -->
+        <div class="charts-row-grid">
+          
+          <!-- Chart 1: Duration Trend -->
+          <div class="chart-card">
+            <div class="dash-card-title">
+              <span><i class="fas fa-chart-column text-primary"></i> Actual vs Scheduled Supply Duration (Hours)</span>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="durationChartCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart 2: Punctuality Breakdown -->
+          <div class="chart-card">
+            <div class="dash-card-title">
+              <span><i class="fas fa-chart-pie text-primary"></i> Punctuality Distribution</span>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="punctualityChartCanvas"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Historical Supply Log Table -->
+        <div class="dash-card">
+          <div class="dash-card-title">
+            <span><i class="fas fa-table text-primary"></i> Historical Supply Log</span>
+            <span class="text-xs text-muted">Sample data for student prototype</span>
+          </div>
+
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Cycle Date</th>
+                  <th>Expected Window</th>
+                  <th>Actual Delivered Time</th>
+                  <th>Duration</th>
+                  <th>Variance & Punctuality</th>
+                </tr>
+              </thead>
+              <tbody id="recordsTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         VIEW 7: ABOUT US (#about)
+         =================================================================== -->
+    <section id="view-about" class="app-view hidden">
+      <div class="container section-pad">
+        
+        <div class="about-hero-box">
+          <span class="section-pill-tag text-white opacity-80" style="color: #bae6fd;">About WaterWatch</span>
+          <h1>Empowering Communities Through Smart Water Visibility</h1>
+          <p class="max-w-2xl mx-auto text-sky-100 text-lg">
+            WaterWatch was conceived as a human-centered Student Ideathon prototype addressing the unpredictable water supply timing challenges faced by millions of urban households in Hyderabad, Telangana.
+          </p>
+        </div>
+
+        <!-- Problem vs Solution -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-10">
+          
+          <div class="dash-card p-6 border-l-4 border-l-red-500">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-lg"><i class="fas fa-exclamation-triangle"></i></div>
+              <h3 class="text-xl">The Problem</h3>
+            </div>
+            <p class="text-slate-600 text-sm leading-relaxed">
+              In rapidly expanding metropolises like Hyderabad, municipal water is distributed on alternate days or erratic timing shifts. Residents frequently face:
+            </p>
+            <ul class="text-sm text-slate-600 mt-3 space-y-2 list-disc list-inside">
+              <li><strong>Zero real-time visibility:</strong> Water releases can vary from early dawn to midnight without prior alerts.</li>
+              <li><strong>Domestic disruption:</strong> Family members wake up multiple times during the night or miss shifts to switch on booster pumps.</li>
+              <li><strong>Water wastage & empty tanks:</strong> Overflowing sumps or missed fills lead to expensive private water tanker dependencies.</li>
+            </ul>
+          </div>
+
+          <div class="dash-card p-6 border-l-4 border-l-sky-500">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center text-lg"><i class="fas fa-lightbulb"></i></div>
+              <h3 class="text-xl">The WaterWatch Solution</h3>
+            </div>
+            <p class="text-slate-600 text-sm leading-relaxed">
+              WaterWatch synthesizes predictable scheduling with crowdsourced community verification to create an actionable neighbourhood radar:
+            </p>
+            <ul class="text-sm text-slate-600 mt-3 space-y-2 list-disc list-inside">
+              <li><strong>Timely Advance Alerts:</strong> Know 30 to 60 minutes beforehand when valve operators open lines.</li>
+              <li><strong>Crowd Confirmation Consensus:</strong> Real neighbours verify with one tap when water actually reaches taps.</li>
+              <li><strong>Reliability Metrics:</strong> Transparent punctuality logs help citizens and resident welfare associations (RWAs) plan effectively.</li>
+            </ul>
+          </div>
+
+        </div>
+
+        <!-- Target Personas -->
+        <div class="my-12">
+          <div class="section-head text-center mb-8">
+            <span class="section-pill-tag">Design Thinking Personas</span>
+            <h2 class="section-title">Designed For Everyday Hyderabad Citizens</h2>
+          </div>
+
+          <div class="personas-grid">
+            
+            <div class="persona-card">
+              <div class="persona-avatar-icon"><i class="fas fa-home"></i></div>
+              <h4 class="persona-title">Local Households</h4>
+              <p class="persona-desc">Homemakers and families managing domestic water storage, laundry, and cooking without endless tap monitoring.</p>
+            </div>
+
+            <div class="persona-card">
+              <div class="persona-avatar-icon"><i class="fas fa-briefcase"></i></div>
+              <h4 class="persona-title">Working Professionals</h4>
+              <p class="persona-desc">IT and corporate employees in Hitec City, Madhapur, and Gachibowli who need predictable morning shower and storage timings.</p>
+            </div>
+
+            <div class="persona-card">
+              <div class="persona-avatar-icon"><i class="fas fa-user-graduate"></i></div>
+              <h4 class="persona-title">Students & Hostels</h4>
+              <p class="persona-desc">Students living in shared flats or PGs in Ameerpet and Kukatpally who need advance alerts before leaving for college or exams.</p>
+            </div>
+
+            <div class="persona-card">
+              <div class="persona-avatar-icon"><i class="fas fa-heart"></i></div>
+              <h4 class="persona-title">Elderly Residents</h4>
+              <p class="persona-desc">Senior citizens spared from physical strain and sleepless nights checking outdoor sumps or heavy overhead tank valves.</p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Student Ideathon Card -->
+        <div class="ideathon-card text-center">
+          <span class="badge badge-info mb-2"><i class="fas fa-award"></i> Student Ideathon Prototype Submission</span>
+          <h3 class="text-xl font-bold text-slate-900 mb-2">Developed for Smart Community Water Supply Challenges</h3>
+          <p class="text-sm text-slate-600 max-w-xl mx-auto mb-4">
+            Built using Design Thinking methodology: <em>Empathize &rarr; Define &rarr; Ideate &rarr; Prototype &rarr; Test</em>. Designed to scale into a smart community utility network for urban India.
+          </p>
+          <div class="flex justify-center gap-3">
+            <a href="#contact" class="btn btn-sm btn-primary" data-nav="contact"><i class="fas fa-comment-dots"></i> Submit Feedback</a>
+            <a href="#dashboard" class="btn btn-sm btn-outline" data-nav="dashboard"><i class="fas fa-tachometer-alt"></i> Try Prototype</a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         VIEW 8: CONTACT & FEEDBACK (#contact)
+         =================================================================== -->
+    <section id="view-contact" class="app-view hidden">
+      <div class="container section-pad">
+        
+        <div class="section-head text-left mb-6">
+          <span class="section-pill-tag">Reach Out & Collaborate</span>
+          <h2 class="section-title">Contact & Community Feedback</h2>
+          <p class="section-desc">Have a query or suggestion for the WaterWatch student prototype? We welcome inputs from Hyderabad citizens and Ideathon evaluators.</p>
+        </div>
+
+        <div class="contact-grid">
+          
+          <!-- Contact Form -->
+          <div class="form-card">
+            <h3><i class="fas fa-envelope text-primary"></i> Get in Touch</h3>
+            <p class="text-sm text-muted mb-4">Send us an inquiry or report an unlisted locality in Hyderabad.</p>
+
+            <form id="contactForm">
+              <div class="form-group">
+                <label class="form-label" for="contactName">Your Full Name *</label>
+                <input type="text" id="contactName" class="form-input" placeholder="e.g. Rohini Deshmukh" required />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="contactEmail">Email Address *</label>
+                <input type="email" id="contactEmail" class="form-input" placeholder="name@example.com" required />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="contactLocalitySelect">Your Hyderabad Locality</label>
+                <select id="contactLocalitySelect" class="form-select">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="contactSubject">Inquiry Topic</label>
+                <select id="contactSubject" class="form-select">
+                  <option value="locality-request">Request New Hyderabad Colony</option>
+                  <option value="pipeline-data">Share Local Valve Timing Information</option>
+                  <option value="ideathon">Ideathon Collaboration / Evaluation</option>
+                  <option value="general">General Support Question</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="contactMessage">Message *</label>
+                <textarea id="contactMessage" class="form-textarea" placeholder="How can we help your neighbourhood?" required></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary w-full">
+                <i class="fas fa-paper-plane"></i> Send Message
+              </button>
+            </form>
+          </div>
+
+          <!-- Feedback Form -->
+          <div class="form-card">
+            <h3><i class="fas fa-star text-warning"></i> Prototype Feedback Form</h3>
+            <p class="text-sm text-muted mb-4">Help the student team evaluate and refine this Design Thinking prototype.</p>
+
+            <form id="feedbackForm">
+              <div class="form-group">
+                <label class="form-label">Prototype Overall Experience Rating:</label>
+                <div class="star-rating" id="starRatingContainer" title="Click to rate">
+                  <i class="fas fa-star" data-rating="1"></i>
+                  <i class="fas fa-star" data-rating="2"></i>
+                  <i class="fas fa-star" data-rating="3"></i>
+                  <i class="fas fa-star" data-rating="4"></i>
+                  <i class="fas fa-star" data-rating="5"></i>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="fbName">Reviewer Name (Optional)</label>
+                <input type="text" id="fbName" class="form-input" placeholder="e.g. Ideathon Judge / Resident" />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="fbEmail">Email Address (Optional)</label>
+                <input type="email" id="fbEmail" class="form-input" placeholder="reviewer@domain.com" />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="fbLocality">Locality Tested</label>
+                <input type="text" id="fbLocality" class="form-input" value="Kukatpally, Hyderabad" />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="fbCategory">Focus Area</label>
+                <select id="fbCategory" class="form-select">
+                  <option value="timing-accuracy">Schedule & Timing Accuracy</option>
+                  <option value="community-confirmation">Community Confirmation Feature</option>
+                  <option value="ui-design">UI/UX Design & Responsiveness</option>
+                  <option value="notification-concept">Notification Concept</option>
+                  <option value="other">Other Suggestions</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="fbComments">Comments & Suggestions *</label>
+                <textarea id="fbComments" class="form-textarea" placeholder="What did you like about WaterWatch? What features would make it better?" required></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-secondary w-full" style="border-color: #bae6fd;">
+                <i class="fas fa-paper-plane"></i> Submit Prototype Feedback
+              </button>
+            </form>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 9: PROFESSIONAL ADMIN LOGIN PORTAL (#admin-login)
+         =================================================================== -->
+    <section id="view-admin-login" class="app-view hidden">
+      <div class="admin-login-wrapper">
+        <div class="admin-login-card">
+          
+          <div class="admin-shield-icon">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+
+          <div class="text-center mb-6">
+            <h2 class="text-2xl font-bold">Central Command Login</h2>
+            <p class="text-xs text-slate-300 mt-1">WaterWatch Municipal Administration Portal • Hyderabad</p>
+          </div>
+
+          <form id="adminLoginForm">
+            <div class="form-group">
+              <label class="form-label" for="adminEmailInput"><i class="fas fa-user-shield"></i> Officer Email</label>
+              <input type="email" id="adminEmailInput" class="form-input" placeholder="admin@waterwatch.org" value="admin@waterwatch.org" required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="adminPasswordInput"><i class="fas fa-lock"></i> Master Password</label>
+              <input type="password" id="adminPasswordInput" class="form-input" placeholder="••••••••••••" value="AdminWaterWatch2026!" required />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-full mt-2" id="btnAdminLoginSubmit" style="background: linear-gradient(135deg, #0284c7, #0369a1); font-weight: 700;">
+              <i class="fas fa-shield-alt"></i> Access Central Command
+            </button>
+          </form>
+
+          <!-- Quick Fill Demo Button -->
+          <div class="mt-4 text-center">
+            <button type="button" class="btn btn-xs btn-outline w-full" id="btnQuickFillAdmin" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">
+              <i class="fas fa-key"></i> Quick-Fill Demo Admin Credentials
+            </button>
+          </div>
+
+          <div class="admin-demo-box">
+            <div class="font-bold text-slate-200 mb-1"><i class="fas fa-info-circle text-sky-400"></i> Officer Access Credentials:</div>
+            <div>Email: <strong class="text-sky-300">admin@waterwatch.org</strong></div>
+            <div>Password: <strong class="text-sky-300">AdminWaterWatch2026!</strong></div>
+            <div class="mt-2 text-xs text-slate-400">Restricted to authorized Water Supply Controllers & Ideathon Evaluators.</div>
+          </div>
+
+          <div class="text-center mt-6">
+            <a href="#home" data-nav="home" class="text-xs text-slate-400 hover:text-white">&larr; Return to Public Resident Portal</a>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         VIEW 10: ADMIN CONTROL CENTER / DASHBOARD (#admin-panel)
+         =================================================================== -->
+    <section id="view-admin-panel" class="app-view hidden">
+      
+      <!-- Admin Executive Top Bar -->
+      <div class="admin-portal-header">
+        <div class="container flex items-center justify-between flex-wrap gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-sky-600 flex items-center justify-center text-white text-xl"><i class="fas fa-shield-alt"></i></div>
+            <div>
+              <h2 class="text-xl font-bold">WaterWatch Central Command</h2>
+              <div class="text-xs text-slate-400">Chief Water Officer & Municipal Control Console • Hyderabad, TS</div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="status-pill status-completed" id="adminFirebaseStatusBadge">CONNECTED</span>
+            <a href="#dashboard" class="btn btn-xs btn-outline" data-nav="dashboard" style="color: #cbd5e1; border-color: #475569;"><i class="fas fa-external-link-alt"></i> View Public Site</a>
+            <button class="btn btn-xs btn-danger" id="btnAdminLogout"><i class="fas fa-sign-out-alt"></i> Sign Out Admin</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Command Layout -->
+      <div class="admin-command-layout">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="admin-sidebar">
+          <div class="text-xs font-bold text-slate-500 uppercase px-3 py-2">Navigation</div>
+          <a class="admin-nav-item active" data-admin-tab="overview"><i class="fas fa-chart-line"></i> Command Overview</a>
+          <a class="admin-nav-item" data-admin-tab="schedules"><i class="fas fa-calendar-alt"></i> Schedule Manager</a>
+          <a class="admin-nav-item" data-admin-tab="alerts"><i class="fas fa-bullhorn"></i> Emergency Alerts</a>
+          <a class="admin-nav-item" data-admin-tab="reports"><i class="fas fa-clipboard-check"></i> Report Moderation</a>
+          <a class="admin-nav-item" data-admin-tab="localities"><i class="fas fa-map-marked-alt"></i> Localities Directory</a>
+          <a class="admin-nav-item" data-admin-tab="system"><i class="fas fa-server"></i> System & Security</a>
+        </aside>
+
+        <!-- Main Content Pane -->
+        <main class="admin-content-pane">
+          
+          <!-- TAB 1: OVERVIEW -->
+          <div id="adminTabPane-overview" class="admin-tab-pane">
+            
+            <div class="mb-6">
+              <h3 class="text-2xl font-bold">Command Center Overview</h3>
+              <p class="text-sm text-slate-600">Real-time municipal telemetry and active control widgets.</p>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="admin-kpi-grid">
+              <div class="admin-kpi-card">
+                <div class="admin-kpi-icon bg-sky-100 text-sky-600"><i class="fas fa-map-marker-alt"></i></div>
+                <div>
+                  <div class="text-xs text-slate-500 font-bold uppercase">Monitored Areas</div>
+                  <div class="text-2xl font-bold" id="adminKpiLocalities">12</div>
+                </div>
+              </div>
+
+              <div class="admin-kpi-card">
+                <div class="admin-kpi-icon bg-emerald-100 text-emerald-600"><i class="fas fa-clock"></i></div>
+                <div>
+                  <div class="text-xs text-slate-500 font-bold uppercase">Active Schedules</div>
+                  <div class="text-2xl font-bold" id="adminKpiSchedules">24</div>
+                </div>
+              </div>
+
+              <div class="admin-kpi-card">
+                <div class="admin-kpi-icon bg-amber-100 text-amber-600"><i class="fas fa-users"></i></div>
+                <div>
+                  <div class="text-xs text-slate-500 font-bold uppercase">Citizen Reports</div>
+                  <div class="text-2xl font-bold" id="adminKpiReports">48</div>
+                </div>
+              </div>
+
+              <div class="admin-kpi-card">
+                <div class="admin-kpi-icon bg-purple-100 text-purple-600"><i class="fas fa-server"></i></div>
+                <div>
+                  <div class="text-xs text-slate-500 font-bold uppercase">System Health</div>
+                  <div class="text-sm font-bold text-success" id="adminKpiSystemStatus">100% Operational</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Locality Status Grid -->
+            <div class="dash-card mb-6">
+              <div class="dash-card-title">
+                <span><i class="fas fa-bolt text-warning"></i> 1-Click Status Toggles (Instant Public Website Sync)</span>
+                <span class="text-xs text-slate-500">Click to change water status across Hyderabad</span>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="adminQuickStatusGrid">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+
+            <!-- Quick Action Links -->
+            <div class="dash-card">
+              <div class="dash-card-title">
+                <span><i class="fas fa-tools text-primary"></i> Administrative Quick Actions</span>
+              </div>
+              <div class="flex flex-wrap gap-3">
+                <button class="btn btn-sm btn-primary" onclick="AdminController.switchTab('schedules')"><i class="fas fa-plus"></i> Add New Water Schedule</button>
+                <button class="btn btn-sm btn-warning" onclick="AdminController.switchTab('alerts')"><i class="fas fa-broadcast-tower"></i> Broadcast Emergency Alert</button>
+                <button class="btn btn-sm btn-outline" onclick="AdminController.switchTab('reports')"><i class="fas fa-user-check"></i> Moderate Citizen Confirmations</button>
+                <button class="btn btn-sm btn-outline" onclick="AdminController.switchTab('firebase')"><i class="fas fa-cog"></i> Configure Live Firebase Keys</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- TAB 2: SCHEDULE MANAGER -->
+          <div id="adminTabPane-schedules" class="admin-tab-pane hidden">
+            
+            <div class="mb-6">
+              <h3 class="text-2xl font-bold">Water Supply Schedule Manager</h3>
+              <p class="text-sm text-slate-600">Create, edit, adjust, or cancel water distribution windows for any Hyderabad locality.</p>
+            </div>
+
+            <!-- Add Schedule Form Card -->
+            <div class="dash-card mb-6">
+              <div class="dash-card-title">
+                <span><i class="fas fa-calendar-plus text-primary"></i> Publish New Water Distribution Schedule</span>
+              </div>
+
+              <form id="adminAddScheduleForm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  <div class="form-group">
+                    <label class="form-label" for="adminSchLocality">Hyderabad Locality *</label>
+                    <select id="adminSchLocality" class="form-select" required>
+                      <!-- Populated dynamically -->
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="adminSchDate">Supply Date *</label>
+                    <input type="date" id="adminSchDate" class="form-input" required />
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="adminSchStartTime">Start Timing *</label>
+                    <input type="text" id="adminSchStartTime" class="form-input" placeholder="e.g. 06:00 AM" required />
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="adminSchEndTime">End Timing *</label>
+                    <input type="text" id="adminSchEndTime" class="form-input" placeholder="e.g. 08:30 AM" required />
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="adminSchStatus">Supply Status *</label>
+                    <select id="adminSchStatus" class="form-select">
+                      <option value="Scheduled">Scheduled</option>
+                      <option value="Delayed">Delayed</option>
+                      <option value="Updated">Updated / Rescheduled</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="adminSchDuration">Expected Duration</label>
+                    <input type="text" id="adminSchDuration" class="form-input" placeholder="e.g. 2h 30m" value="2h 30m" />
+                  </div>
+
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="adminSchNote">Operator Notes & Change Announcements</label>
+                  <input type="text" id="adminSchNote" class="form-input" placeholder="e.g. Hydernagar reservoir line release. Normal pressure anticipated." />
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-check"></i> Publish Supply Schedule to Website
+                </button>
+              </form>
+            </div>
+
+            <!-- Schedules Table -->
+            <div class="dash-card">
+              <div class="dash-card-title flex items-center justify-between flex-wrap gap-2">
+                <span><i class="fas fa-list text-primary"></i> Active Schedules Registry</span>
+                <input type="text" id="adminSchSearchInput" class="form-input" placeholder="Search by area, date, or status..." style="max-width: 280px; padding: 0.35rem 0.65rem; font-size: 0.8125rem;" />
+              </div>
+
+              <div class="table-responsive" style="display: block;">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Locality</th>
+                      <th data-i18n="sch_th_date">Date</th>
+                      <th>Window</th>
+                      <th>Status</th>
+                      <th>Updated</th>
+                      <th>Notes</th>
+                      <th data-i18n="sch_th_actions">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminSchedulesTableBody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- TAB 3: EMERGENCY ALERTS -->
+          <div id="adminTabPane-alerts" class="admin-tab-pane hidden">
+            
+            <div class="mb-6">
+              <h3 class="text-2xl font-bold">Emergency & Public Alerts Dispatcher</h3>
+              <p class="text-sm text-slate-600">Broadcast real-time push notices, delay warnings, or maintenance advisories.</p>
+            </div>
+
+            <!-- Dispatch Alert Card -->
+            <div class="dash-card mb-6">
+              <div class="dash-card-title">
+                <span><i class="fas fa-broadcast-tower text-danger"></i> Dispatch Live Citizen Alert</span>
+              </div>
+
+              <form id="adminDispatchAlertForm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  <div class="form-group">
+                    <label class="form-label" for="adminAlertTargetLocality">Target Locality *</label>
+                    <select id="adminAlertTargetLocality" class="form-select">
+                      <option value="__ALL__">🚨 ALL HYDERABAD LOCALITIES (Citywide Broadcast)</option>
+                      <!-- Populated dynamically -->
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="adminAlertType">Alert Classification *</label>
+                    <select id="adminAlertType" class="form-select">
+                      <option value="advance">Advance Water Notice</option>
+                      <option value="delay">Pipeline Delay Announcement</option>
+                      <option value="update">Timetable Shift / Maintenance</option>
+                      <option value="arrival">Supply Arrival / Line Pressure Active</option>
+                    </select>
+                  </div>
+
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="adminAlertTitle">Headline / Title *</label>
+                  <input type="text" id="adminAlertTitle" class="form-input" placeholder="e.g. Feeder Line Valve Calibration Underway" required />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="adminAlertMessage">Full Notice Message *</label>
+                  <textarea id="adminAlertMessage" class="form-textarea" placeholder="Detail the cause, expected duration, and guidance for residents..." required></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-warning" style="background: #d97706; color: white;">
+                  <i class="fas fa-paper-plane"></i> Broadcast Alert Immediately
+                </button>
+              </form>
+            </div>
+
+            <!-- Active Alerts Table -->
+            <div class="dash-card">
+              <div class="dash-card-title">
+                <span><i class="fas fa-stream text-primary"></i> Currently Deployed Public Alerts</span>
+              </div>
+              <div id="adminActiveAlertsList">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- TAB 4: CITIZEN REPORTS MODERATION -->
+          <div id="adminTabPane-reports" class="admin-tab-pane hidden">
+            
+            <div class="mb-6">
+              <h3 class="text-2xl font-bold">Citizen Confirmation Moderation</h3>
+              <p class="text-sm text-slate-600">Review crowdsourced community reports, remove false inputs, and audit consensus rates.</p>
+            </div>
+
+            <div class="dash-card">
+              <div class="dash-card-title">
+                <span><i class="fas fa-shield-alt text-primary"></i> All Logged Community Submissions</span>
+              </div>
+
+              <div class="table-responsive" style="display: block;">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Locality</th>
+                      <th>Resident Name</th>
+                      <th>Reported Status</th>
+                      <th>Pressure Level</th>
+                      <th>Resident Comment</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminReportsTableBody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- TAB 5: LOCALITIES DIRECTORY -->
+          <div id="adminTabPane-localities" class="admin-tab-pane hidden">
+            
+            <div class="mb-6">
+              <h3 class="text-2xl font-bold">Hyderabad Localities Directory</h3>
+              <p class="text-sm text-slate-600">Manage monitored colonies, reservoirs, GLSRs, and municipal feeder zones.</p>
+            </div>
+
+            <!-- Add Colony Card -->
+            <div class="dash-card mb-6">
+              <div class="dash-card-title">
+                <span><i class="fas fa-plus-circle text-primary"></i> Register New Hyderabad Colony / Zone</span>
+              </div>
+
+              <form id="adminAddLocalityForm">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="form-group">
+                    <label class="form-label" for="adminNewLocName">Locality Name *</label>
+                    <input type="text" id="adminNewLocName" class="form-input" placeholder="e.g. Kondapur" required />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="adminNewLocZone">Municipal Zone *</label>
+                    <input type="text" id="adminNewLocZone" class="form-input" placeholder="e.g. West Zone (Serilingampally)" required />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="adminNewLocPumping">Feeder Pumping Station / GLSR</label>
+                    <input type="text" id="adminNewLocPumping" class="form-input" placeholder="e.g. Kondapur Booster Reservoir" />
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save"></i> Register Locality
+                </button>
+              </form>
+            </div>
+
+            <!-- Localities Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="adminLocalitiesGrid">
+              <!-- Rendered dynamically -->
+            </div>
+
+          </div>
+
+          <!-- TAB 6: SYSTEM & SECURITY TELEMETRY -->
+          <div id="adminTabPane-system" class="admin-tab-pane hidden">
+            
+            <div class="mb-6">
+              <h3 class="text-2xl font-bold">System Telemetry & Platform Security</h3>
+              <p class="text-sm text-slate-600">Active municipal cloud services, Firestore database rules, and public maintenance controls.</p>
+            </div>
+
+            <!-- Diagnostics Card -->
+            <div class="dash-card mb-6">
+              <div class="dash-card-title">
+                <span><i class="fas fa-shield-alt text-success"></i> Connected Infrastructure Status</span>
+                <span class="status-pill status-completed">ACTIVE & SECURED</span>
+              </div>
+              <div class="text-sm space-y-2">
+                <div class="flex justify-between py-2 border-b border-slate-100">
+                  <span class="text-muted">Cloud Project:</span>
+                  <strong>watersupply-a0703</strong>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-100">
+                  <span class="text-muted">Authentication Engine:</span>
+                  <span class="badge badge-success"><i class="fas fa-check"></i> Firebase Auth (Email & Password)</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-100">
+                  <span class="text-muted">Database Engine:</span>
+                  <span class="badge badge-info"><i class="fas fa-database"></i> Google Cloud Firestore</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-100">
+                  <span class="text-muted">Security Access Rules:</span>
+                  <span class="badge badge-success"><i class="fas fa-shield-alt"></i> firestore.rules Enforced</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-100">
+                  <span class="text-muted">Default City / Scope:</span>
+                  <strong>Hyderabad, Telangana, India</strong>
+                </div>
+                <div class="flex justify-between py-2">
+                  <span class="text-muted">Real-Time State:</span>
+                  <span id="adminFirebaseModeText">Firebase Connected (Project: watersupply-a0703)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Maintenance Mode Control -->
+            <div class="dash-card mb-6">
+              <div class="dash-card-title">
+                <span><i class="fas fa-tools text-warning"></i> Website Maintenance Mode</span>
+              </div>
+              <p class="text-xs text-slate-500 mb-3">When enabled, public visitors see an official notice banner while you retain full admin console control.</p>
+              <div class="flex items-center gap-3 mb-3">
+                <input type="checkbox" id="adminToggleMaintenance" style="width: 20px; height: 20px; cursor: pointer;" />
+                <label for="adminToggleMaintenance" class="font-bold text-sm cursor-pointer">Enable Public Maintenance Notice</label>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="adminMaintenanceMsg">Maintenance Notice Message</label>
+                <input type="text" id="adminMaintenanceMsg" class="form-input" value="Scheduled municipal water telemetry upgrade in progress. Normal service resumes shortly." />
+              </div>
+            </div>
+
+            <!-- Factory Reset / Demo Cache Reset -->
+            <div class="dash-card">
+              <div class="dash-card-title">
+                <span><i class="fas fa-redo-alt text-slate-600"></i> Local Cache & Simulation Reset</span>
+              </div>
+              <p class="text-xs text-slate-500 mb-3">Restores all Hyderabad sample schedules, alerts, and community reports to initial factory defaults.</p>
+              <button type="button" class="btn btn-sm btn-outline" onclick="window.storage.resetToDefault()">
+                <i class="fas fa-undo"></i> Reset Local Data Cache
+              </button>
+            </div>
+
+          </div>
+
+        </main>
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- ===================================================================
+       FOOTER
+       =================================================================== -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        
+        <div class="footer-col">
+          <div class="brand-logo mb-3">
+            <div class="logo-water-icon" style="width: 36px; height: 36px; font-size: 1rem;"><i class="fas fa-tint"></i></div>
+            <div class="logo-title" style="color: var(--white);">Water<span style="color: var(--primary-light);">Watch</span></div>
+          </div>
+          <p class="text-sm leading-relaxed mb-3">
+            Smart Community Water Supply Notification System. Helping residents across Hyderabad stay informed, prepare domestic storage, and confirm municipal supply timings.
+          </p>
+          <div class="text-xs text-slate-500">
+            Default Location: <strong>Hyderabad, Telangana, India</strong>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h5 data-i18n="footer_pages_title">Platform Pages</h5>
+          <ul class="footer-links">
+            <li><a href="#home" data-nav="home"><span data-i18n="nav_home">Home</span></a></li>
+            <li><a href="#dashboard" data-nav="dashboard"><span data-i18n="nav_dashboard">Locality Dashboard</span></a></li>
+            <li><a href="#schedule" data-nav="schedule"><span data-i18n="nav_schedule">Supply Schedule</span></a></li>
+            <li><a href="#notifications" data-nav="notifications"><span data-i18n="nav_notifications">Notification Alerts</span></a></li>
+            <li><a href="#community" data-nav="community"><span data-i18n="nav_community">Community Confirmation</span></a></li>
+            <li><a href="#portals" data-nav="portals"><span data-i18n="nav_portals">Official Portals</span></a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5 data-i18n="footer_official_title">Official Government Portals</h5>
+          <ul class="footer-links">
+            <li><a href="https://hyderabadwater.gov.in/" target="_blank" rel="noopener noreferrer"><i class="fas fa-arrow-up-right-from-square text-xs"></i> HMWSSB Website</a></li>
+            <li><a href="https://x.com/HMWSSBOnline" target="_blank" rel="noopener noreferrer"><i class="fab fa-x-twitter text-xs"></i> HMWSSB on X</a></li>
+            <li><a href="https://www.ghmc.gov.in/" target="_blank" rel="noopener noreferrer"><i class="fas fa-arrow-up-right-from-square text-xs"></i> GHMC Website</a></li>
+            <li><a href="https://x.com/GHMCOnline" target="_blank" rel="noopener noreferrer"><i class="fab fa-x-twitter text-xs"></i> GHMC on X</a></li>
+            <li><a href="#portals" data-nav="portals"><i class="fas fa-building-columns text-xs"></i> <span data-i18n="nav_portals">Portals Directory</span></a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Project & Research</h5>
+          <ul class="footer-links">
+            <li><a href="#records" data-nav="records">Supply Records & Analytics</a></li>
+            <li><a href="#about" data-nav="about">About Problem & Solution</a></li>
+            <li><a href="#contact" data-nav="contact">Contact & Feedback</a></li>
+            <li><a href="#admin-login" data-nav="admin-login"><i class="fas fa-shield-alt text-amber-400"></i> Central Command (Admin)</a></li>
+            <li><a href="javascript:void(0)" onclick="App.openModal('simulateAlertModal')">Test Alert Dispatcher</a></li>
+            <li><a href="javascript:void(0)" onclick="window.storage.resetToDefault()">Reset Demo Data</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Ideathon Prototype Notice</h5>
+          <p class="text-xs text-slate-400 mb-3 leading-relaxed">
+            Developed as a student Ideathon prototype. Sourced timings and alerts are realistic simulated sample data. Designed for integration with Firebase Authentication, Firestore, and HMWSSB telemetry APIs.
+          </p>
+          <div class="inline-flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-full text-xs text-slate-300">
+            <i class="fas fa-circle text-emerald-400 text-xs"></i> Prototype Active
+          </div>
+        </div>
+
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 WaterWatch – Smart Community Water Supply Notification System. Student Ideathon Project.</div>
+        <div>Designed with <i class="fas fa-heart text-red-500"></i> for Hyderabad Communities.</div>
+      </div>
+    </div>
+  </footer>
+
+
+  <!-- ===================================================================
+       MODAL 1: AUTHENTICATION (Sign In / Register)
+       =================================================================== -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="text-lg font-bold"><i class="fas fa-user-circle text-primary"></i> WaterWatch Account</h3>
+        <button class="modal-close-btn" onclick="App.closeModal('authModal')">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        
+        <div class="modal-tabs">
+          <button class="modal-tab-btn active" id="authTabSignIn">Sign In</button>
+          <button class="modal-tab-btn" id="authTabSignUp">Create Account</button>
+        </div>
+
+        <!-- Sign In Form -->
+        <form id="authFormSignIn">
+          <div class="form-group">
+            <label class="form-label" for="loginEmail">Email Address</label>
+            <input type="email" id="loginEmail" class="form-input" value="aarav.hyd@example.com" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" class="form-input" value="waterwatch123" required />
+          </div>
+          <p class="text-xs text-muted mb-3"><i class="fas fa-info-circle text-primary"></i> Preloaded with demo credentials. Click Sign In to enter.</p>
+          <button type="submit" class="btn btn-primary w-full">Sign In</button>
+        </form>
+
+        <!-- Sign Up Form -->
+        <form id="authFormSignUp" class="hidden">
+          <div class="form-group">
+            <label class="form-label" for="regName">Full Name</label>
+            <input type="text" id="regName" class="form-input" placeholder="e.g. Sravanthi Reddy" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="regEmail">Email Address</label>
+            <input type="email" id="regEmail" class="form-input" placeholder="sravanthi@example.com" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="regPassword">Create Password (min 6 chars)</label>
+            <input type="password" id="regPassword" class="form-input" placeholder="••••••••" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="authLocalitySelect">Your Hyderabad Locality</label>
+            <select id="authLocalitySelect" class="form-select" required>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary w-full">Create Account</button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================
+       MODAL 2: CUSTOM LOCALITY (Add new Hyderabad colony)
+       =================================================================== -->
+  <div class="modal-overlay" id="customLocalityModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="text-lg font-bold"><i class="fas fa-map-marker-alt text-primary"></i> Add Hyderabad Locality</h3>
+        <button class="modal-close-btn" onclick="App.closeModal('customLocalityModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-sm text-slate-600 mb-3">
+          Enter any residential colony, nagar, or zone in Hyderabad, Telangana (e.g. Kondapur, Nallagandla, Tarnaka, Amberpet, Alwal):
+        </p>
+        <form id="customLocalityForm">
+          <div class="form-group">
+            <label class="form-label" for="customLocalityInput">Locality / Colony Name *</label>
+            <input type="text" id="customLocalityInput" class="form-input" placeholder="e.g. Kondapur" required />
+          </div>
+          <div class="flex gap-2">
+            <button type="button" class="btn btn-outline flex-1" onclick="App.closeModal('customLocalityModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary flex-1"><i class="fas fa-plus"></i> Add & Select</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================
+       MODAL 3: SIMULATE ALERT (Ideathon Presentation Tool)
+       =================================================================== -->
+  <div class="modal-overlay" id="simulateAlertModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="text-lg font-bold"><i class="fas fa-magic text-primary"></i> Ideathon Alert Simulator</h3>
+        <button class="modal-close-btn" onclick="App.closeModal('simulateAlertModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-xs text-slate-500 mb-3">
+          Use this interactive simulation control during Ideathon judge demos to test real-time notification dispatch and in-app alert reactions.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label" for="simLocalitySelect">Target Locality:</label>
+          <select id="simLocalitySelect" class="form-select">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="simAlertType">Alert Category:</label>
+          <select id="simAlertType" class="form-select">
+            <option value="advance">Advance Supply Alert (e.g. Supply Soon)</option>
+            <option value="delay">Delay Announcement (e.g. Pump Valve Repair)</option>
+            <option value="update">Timing Rescheduled</option>
+            <option value="arrival">Water Supply Released / Arrived</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="simAlertTitle">Alert Title:</label>
+          <input type="text" id="simAlertTitle" class="form-input" value="Water supply is expected in your locality soon." />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="simAlertMessage">Notification Message:</label>
+          <textarea id="simAlertMessage" class="form-textarea" rows="2">Water supply is expected in your locality soon. Please check your inlet valves and storage sumps.</textarea>
+        </div>
+
+        <button type="button" class="btn btn-primary w-full" id="btnTriggerSimAlert">
+          <i class="fas fa-paper-plane"></i> Broadcast Simulated Alert
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================
+       TOAST CONTAINER (In-app popup notifications)
+       =================================================================== -->
+  <div class="toast-container" id="toastContainer"></div>
+
+
+  <!-- ===================================================================
+       SCRIPTS (Loaded with Translations engine & root fallback)
+       =================================================================== -->
+  <script src="translations.js"></script>
+  <script src="data.js"></script>
+  <script src="storage.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="admin.js"></script>
+  <script src="charts.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>

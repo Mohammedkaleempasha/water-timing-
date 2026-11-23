@@ -1,0 +1,135 @@
+rules_version = '2';
+
+/**
+ * WaterWatch - Cloud Firestore Security Rules
+ * 
+ * Production Security Rules for Smart Community Water Supply Notification System.
+ * Default Deployment Scope: Hyderabad, Telangana, India.
+ * 
+ * PERMISSIONS SUMMARY:
+ * - Public Read: Water supply schedules, locality status, alerts, and aggregated community consensus.
+ * - Authenticated Write: Residents can publish community arrival confirmations and submit feedback.
+ * - Administrator Only: Full control over water supply schedules, emergency broadcasts,
+ *   locality configurations, and community report moderation.
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------
+    // HELPER SECURITY FUNCTIONS
+    // -------------------------------------------------------------
+
+    // Returns true if request originates from an authenticated user
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    // Returns true if authenticated user is the designated system administrator
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'admin@waterwatch.org' ||
+        request.auth.token.email == 'admin@waterwatch.gov.in' ||
+        (request.auth.token.role != null && request.auth.token.role == 'admin') ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    // Returns true if authenticated user matches document owner
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Validate email format
+    function isValidEmail(email) {
+      return email is string && email.matches('^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$');
+    }
+
+    // -------------------------------------------------------------
+    // COLLECTION RULES
+    // -------------------------------------------------------------
+
+    // 1. Users Collection (/users/{userId})
+    match /users/{userId} {
+      // User can read their own profile, or admin can read any
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // User can create their initial profile upon registration
+      allow create: if isAuthenticated() && request.auth.uid == userId && (
+        request.resource.data.role == 'resident' || isAdmin()
+      );
+
+      // User can update their own non-role profile details, Admin can update anything
+      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
+      
+      // Only admin can delete user profiles
+      allow delete: if isAdmin();
+    }
+
+    // 2. Hyderabad Localities (/localities/{localityId})
+    match /localities/{localityId} {
+      // Public read so citizens and visitors can view timetable & status
+      allow read: if true;
+
+      // Only authenticated Admins can add or update localities and pumping stations
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 3. Water Supply Schedules (/schedules/{scheduleId})
+    match /schedules/{scheduleId} {
+      // Public read for real-time timetable displays
+      allow read: if true;
+
+      // Only Admins (valve controllers / water officers) can create, update, or cancel schedules
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 4. Emergency & Public Alerts (/alerts/{alertId})
+    match /alerts/{alertId} {
+      // Public read so mobile push and web notifications can be fetched
+      allow read: if true;
+
+      // Only Admins can publish or retract advance alerts and delay announcements
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 5. Community Water Confirmations (/reports/{reportId})
+    match /reports/{reportId} {
+      // Public read for consensus percentage and neighbour verification feed
+      allow read: if true;
+
+      // Authenticated residents can submit water confirmations
+      allow create: if isAuthenticated() && (
+        // Validate required report fields
+        request.resource.data.arrived is bool &&
+        request.resource.data.locality is string &&
+        request.resource.data.locality.size() > 0 &&
+        request.resource.data.userId == request.auth.uid
+      );
+
+      // Only Admins can moderate, edit, or delete spam / abusive reports
+      allow update, delete: if isAdmin();
+    }
+
+    // 6. Citizen Feedback & Inquiries (/feedback/{feedbackId})
+    match /feedback/{feedbackId} {
+      // Anyone can submit contact messages or prototype reviews
+      allow create: if request.resource.data.message is string &&
+                       request.resource.data.message.size() > 0;
+
+      // Only Admins can read, review, and manage received feedback
+      allow read, update, delete: if isAdmin();
+    }
+
+    // 7. System & Maintenance Settings (/settings/{settingId})
+    match /settings/{settingId} {
+      // Public read to detect maintenance mode or citywide announcements
+      allow read: if true;
+
+      // Only Admins can toggle system configuration
+      allow write: if isAdmin();
+    }
+
+  }
+}
